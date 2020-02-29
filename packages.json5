@@ -1,5 +1,8 @@
 // List of packages to be installed. Key is package name, args are strings to be run
 // Allowed macros: break: breaks program
+//                 info:  displays message and continues
+//                 ternary: denotes a bash ternary conditional of the form:
+//                          expr *? opt1 *: opt2
 {
   "basic_packages" : [
     "sudo apt-get update",
@@ -15,9 +18,10 @@
                              curl"
   ],
   "ssh_keys" : [
-    'ssh-keygen -t rsa -b 4096 -C "pdkao@mit.edu"',
+    "ternary: $SSH_EMAIL *? echo 'Your email is '$SSH_EMAIL *: echo 'Please set SSH_EMAIL environment variable.' && read ssh_email && export SSH_EMAIL=$ssh_email",
+    "ssh-keygen -t rsa -b 4096 -C $SSH_EMAIL",
     'eval "$(ssh-agent -s)"',
-    'ssh-add ~/.ssh/id_rsa',
+    "ssh-add ~/.ssh/id_rsa",
     "xclip -sel clip < ~/.ssh/id_rsa.pub",
     "break:Please add the ssh key on the clipboard to github"
   ],
@@ -34,7 +38,6 @@
   "docker" : [
     "curl -fsSL https://get.docker.com -o get-docker.sh",
     "sudo sh get-docker.sh",
-    "sudo usermod -aG docker $USER",
     'sudo curl -L "https://github.com/docker/compose/releases/download/1.24.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose',
     "sudo chmod +x /usr/local/bin/docker-compose"
   ],

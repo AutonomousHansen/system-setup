@@ -33,25 +33,49 @@ def update_progress(progress, name, script_loc):
     progress.append(name)
     list_to_file("{}/progress.txt".format(script_loc), progress)
 
+def process_command(cmd):
+        # Sys.stdin and sys.stdout instead of PIPE redirect output
+        command = Popen(cmd, executable='bash', shell=True, stdin=sys.stdin, stdout=sys.stdout,
+                        universal_newlines=True)
+        command.communicate()
+        result = command.returncode
+        if result != 0:
+            raise SystemError
+
+def ternary(line):
+        args = line.split("*?")
+        cond  = args[0]
+        opts  = args[1].split("*:")
+        ternary_expr = "if [" + cond + "]; then " + opts[0] + ";  else " + opts[1] + " ; fi"
+        return ternary_expr
+
 
 def install_pack(progress, name, script_loc, package):
     # Run line
-    for line in package:
-        print(">>{}".format(line))
-        # Check for macros
-        if 'break:' in line:
-            print(line.replace('break:', ''))
-            update_progress(progress, name, script_loc)
-            return
-        else:
-            split = line.split(" ")
-            # Sys.stdin and sys.stdout instead of PIPE redirect output
-            command = Popen(line, executable='bash', shell=True, stdin=sys.stdin, stdout=sys.stdout,
-                            universal_newlines=True)
-            command.communicate()
-            result = command.returncode
-            if result != 0:
-                raise SystemError("Package {} failed installing at line {}".format(name, line))
+    try:
+        for index, line in enumerate(package[:]):
+            print(">>{}".format(line))
+            # Check for macros
+            if 'break:' in line:
+                # Displays message and exits
+                print(line.replace('break:', ''))
+                update_progress(progress, name, script_loc)
+                return
+            elif 'info:' in line:
+                # Displays message and continues
+                print(line.replace('info:', ''))
+            elif 'ternary:' in line:
+                # Denotes a bash ternary conditional of the form:
+                # expr *? opt1 *: opt2
+                line = line.replace('ternary:', '')
+                ternary_expr = ternary(line)
+                process_command(ternary_expr)
+            else:
+                # Bare bash
+                process_command(line)
+
+    except SystemError:
+        ("Package {} failed installing at line {}".format(name, line))
 
     update_progress(progress, name, script_loc)
 

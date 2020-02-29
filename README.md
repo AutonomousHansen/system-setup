@@ -27,5 +27,14 @@ The json file containing all lines to be executed must be grouped in the followi
 - Each entry in the dictionary should refer to a package and the key should be the package name
 - Each line of the program to be run should be an item in this dictionary, formatted as a string
 
-### "break:" macro
-If a line to be run starts with "break:", the program will pring everything following break: and then exit the program, marking the current package as finished
+### Macros
+All macros will begin will their "macro-name:", followed by their content
+#### break:
+The program will print everything following the macro and then exit the program, marking the current package as finished
+
+#### info:
+The program will print everything following the macro and then continue to the next line
+
+#### ternary:
+The program will evaluate a bash ternary conditional of the form:
+expr *? opt1 *: opt2
