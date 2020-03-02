@@ -36,9 +36,9 @@ def update_progress(progress, name, script_loc):
     progress.append(name)
     list_to_file("{}/progress.txt".format(script_loc), progress)
 
-def process_command(cmd, headless):
+def process_command(cmd):
         # Sys.stdin and sys.stdout instead of PIPE redirect output
-        command = Popen(cmd, executable='bash', shell=not headless, stdin=sys.stdin, stdout=sys.stdout,
+        command = Popen(cmd, executable='bash', shell=True, stdin=sys.stdin, stdout=sys.stdout,
                         universal_newlines=True)
         stdout, stderr = command.communicate()
         result = command.returncode
@@ -46,7 +46,7 @@ def process_command(cmd, headless):
             print(stderr)
             raise SystemError
 
-def jump(raw_expr, cur_index, pack, headless):
+def jump(raw_expr, cur_index, pack):
         # Processes a jump command of the form:
         # `jump: cond -? int1 -: int2`
         # where int1 defaults to the the current line 
@@ -58,7 +58,7 @@ def jump(raw_expr, cur_index, pack, headless):
             indices[1] = len(pack) - 1
         print(indices)
         ternary_expr = "if [" + condition + "]; then echo \'" + str(indices[0]) + "';  else echo \'" + str(indices[1]) + "\'; fi"
-        command = Popen(ternary_expr, executable='bash', shell=not headless, stdin=sys.stdin, stdout=subprocess.PIPE, universal_newlines=True)
+        command = Popen(ternary_expr, executable='bash', shell=True, stdin=sys.stdin, stdout=subprocess.PIPE, universal_newlines=True)
         jump_ind, stderr = command.communicate()
         print(jump_ind)
         print(command.returncode)
@@ -69,7 +69,7 @@ def jump(raw_expr, cur_index, pack, headless):
             return jump_ind
 
 
-def install_pack(progress, name, script_loc, package, headless):
+def install_pack(progress, name, script_loc, package):
     # Run line
     try:
         i = 0
@@ -83,7 +83,7 @@ def install_pack(progress, name, script_loc, package, headless):
                 code, msg = line.split(':', 1)
                 update_progress(progress, name, script_loc)
                 msg = "echo " + msg
-                process_command(msg, headless)
+                process_command(msg)
                 # Defaulting to return 0 if the format break:: was used
                 if code.strip() == '':
                     code = 0
@@ -97,15 +97,15 @@ def install_pack(progress, name, script_loc, package, headless):
                 # Displays message and continues
                 line = line.replace('info:', '')
                 line = "echo " + line
-                process_command(line, headless)
+                process_command(line)
             elif 'jump:' in line:
                 # Jumps to different line in package
                 expr = line.replace('jump:', '')
-                jump_line = jump(expr, i, package, headless)
+                jump_line = jump(expr, i, package)
                 i = int(jump_line) - 1
             else:
                 # Bare bash
-                process_command(line, headless)
+                process_command(line)
             i = i + 1
             update_progress(progress, name, script_loc)
 
@@ -122,8 +122,6 @@ def install_packages():
     parser.add_argument("--file", default="./packages.json5", type=str,
                         help="Path to json file that contains packages to install")
     parser.add_argument("--resources", default="./resources", type=str, help="Path to resources")
-    parser.add_argument("--headless", default=False, type=bool, 
-                        help="To determine if python subprocesses should be a shell, needed for Dockerfile use")
 
     args = parser.parse_args()
 
@@ -153,7 +151,7 @@ def install_packages():
 
     if args.package is not None:
         if args.package in packages:
-            install_pack(progress, args.package, script_loc, packages[args.package], args.headless)
+            install_pack(progress, args.package, script_loc, packages[args.package])
         else:
             print("Could not find package {} in list".format(args.package))
     else:
